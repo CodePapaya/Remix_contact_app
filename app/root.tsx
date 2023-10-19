@@ -10,6 +10,7 @@ import {
   ScrollRestoration,
   useLoaderData,
   useNavigation,
+  useSubmit,
 } from "@remix-run/react";
 import { LinksFunction, redirect, json, LoaderFunctionArgs } from "@remix-run/node";
 import { useEffect } from "react";
@@ -38,6 +39,12 @@ export const action = async () => {
 export default function App() {
   const { contacts, q } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
+  const submit = useSubmit();
+  const searching =
+    navigation.location &&
+    new URLSearchParams(navigation.location.search).has(
+      "q"
+    );
 
   useEffect(() => {
     const searchField = document.getElementById("q");
@@ -58,16 +65,24 @@ export default function App() {
         <div id="sidebar">
           <h1>Remix Contacts</h1>
           <div>
-            <Form id="search-form" role="search">
+            <Form id="search-form" role="search"
+              onChange={(event) => {
+                const isFirstSearch = q === null;
+                submit(event.currentTarget, {
+                  replace: !isFirstSearch,
+                });
+              }}
+            >
               <input
                 aria-label="Search contacts"
                 id="q"
                 name="q"
                 defaultValue={q || ""}
                 placeholder="Search"
+                className={searching ? "loading" : ""}
                 type="search"
               />
-              <div aria-hidden hidden={true} id="search-spinner" />
+              <div aria-hidden id="search-spinner" hidden={!searching} />
             </Form>
             <Form method="post">
               <button type="submit">New</button>
@@ -117,7 +132,9 @@ export default function App() {
         </div>
         <div
           className={
-            navigation.state === "loading" ? "loading" : ""
+            navigation.state === "loading" && !searching
+              ? "loading"
+              : ""
           }
           id="detail">
           <Outlet />
